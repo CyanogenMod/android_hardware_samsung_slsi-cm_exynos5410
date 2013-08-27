@@ -24,8 +24,8 @@ LOCAL_SRC_FILES:= \
 	ExynosJpegEncoder.cpp \
 	ExynosJpegDecoder.cpp
 
-LOCAL_SHARED_LIBRARIES :=    \
-	libcutils	\
+LOCAL_SHARED_LIBRARIES := \
+	libcutils \
 	libion_exynos
 
 LOCAL_MODULE:= libhwjpeg
