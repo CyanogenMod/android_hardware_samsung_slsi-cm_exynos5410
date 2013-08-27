@@ -27,6 +27,7 @@ const size_t GSC_DST_CROP_W_ALIGNMENT_RGB888 = 1;
 #define USE_NORMAL_DRM
 #define SKIP_STATIC_LAYER_COMP
 #define DUAL_VIDEO_OVERLAY_SUPPORT
+#define DISP_OFFSCREEN_2_GLES_COMPOS
 #define TV_BLANK
 
 inline int ExynosWaitForRenderFinish(const private_module_t  *gralloc_module,
