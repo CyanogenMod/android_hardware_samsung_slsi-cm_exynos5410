@@ -1,6 +1,6 @@
 /*
  * Copyright Samsung Electronics Co.,LTD.
- * Copyright (C) 2011 The Android Open Source Project
+ * Copyright (C) 2012 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,9 @@
 
 #define JPEG_CACHE_OFF (0)
 #define JPEG_CACHE_ON (1)
-#define KERNEL_33_JPEG_API (1)
+
+#define JPEG_BUF_TYPE_USER_PTR (1)
+#define JPEG_BUF_TYPE_DMA_BUF (2)
 
 class ExynosJpegBase {
 public:
@@ -56,6 +58,7 @@ public:
         ERROR_BUF_NOT_SET_YET,
         ERROR_REQBUF_FAIL,
         ERROR_INVALID_V4l2_BUF_TYPE = -0x80,
+        ERROR_INVALID_SELECT,
         ERROR_MMAP_FAILED,
         ERROR_FAIL,
         ERROR_NONE = 0
@@ -68,7 +71,8 @@ public:
 
     struct BUFFER{
         int     numOfPlanes;
-        int     addr[JPEG_MAX_PLANE_CNT];
+        int     i_addr[JPEG_MAX_PLANE_CNT];
+        char    *c_addr[JPEG_MAX_PLANE_CNT];
         int     size[JPEG_MAX_PLANE_CNT];
     };
 
@@ -109,6 +113,8 @@ public:
     int setSize(int iW, int iH);
     int setCache(int iValue);
     void *getJpegConfig(void);
+    int selectJpegHW(int iSel);
+    int ckeckJpegSelct(enum MODE eMode);
 
 protected:
     // variables
@@ -116,10 +122,12 @@ protected:
     bool t_bFlagCreateInBuf;
     bool t_bFlagCreateOutBuf;
     bool t_bFlagExcute;
-
+    bool t_bFlagSelect;
+    int t_iCacheValue;
+    int t_iSelectNode; // 0:auto , 1:fimp , 2:hx or fimp2;
     int t_iPlaneNum;
-
     int t_iJpegFd;
+
     struct CONFIG t_stJpegConfig;
     struct BUFFER t_stJpegInbuf;
     struct BUFFER t_stJpegOutbuf;
@@ -130,6 +138,7 @@ protected:
     int t_v4l2SetFmt(int iFd, enum v4l2_buf_type eType, struct CONFIG *pstConfig);
     int t_v4l2GetFmt(int iFd, enum v4l2_buf_type eType, struct CONFIG *pstConfig);
     int t_v4l2Reqbufs(int iFd, int iBufCount, struct BUF_INFO *pstBufInfo);
+    int t_v4l2Querybuf(int iFd, struct BUF_INFO *pstBufInfo, struct BUFFER *pstBuf);
     int t_v4l2Qbuf(int iFd, struct BUF_INFO *pstBufInfo, struct BUFFER *pstBuf);
     int t_v4l2Dqbuf(int iFd, enum v4l2_buf_type eType, enum v4l2_memory eMemory, int iNumPlanes);
     int t_v4l2StreamOn(int iFd, enum v4l2_buf_type eType);
@@ -138,14 +147,23 @@ protected:
     int t_v4l2GetCtrl(int iFd, int iCid);
 
     int create(enum MODE eMode);
+    int openJpeg(enum MODE eMode);
+    int openNode(enum MODE eMode);
     int destroy(int iInBufs, int iOutBufs);
     int setJpegConfig(enum MODE eMode, void *pConfig);
     int setColorFormat(enum MODE eMode, int iV4l2ColorFormat);
     int setJpegFormat(enum MODE eMode, int iV4l2JpegFormat);
     int setColorBufSize(enum MODE eMode, int *piBufSize, int iSize);
     int setColorBufSize(int iFormat, int *piBufSize, int iSize, int width, int height);
+
+    int checkBufType(struct BUFFER *pstBuf);
+    int getBufType(struct BUFFER *pstBuf);
+
     int getBuf(bool bCreateBuf, struct BUFFER *pstBuf, int *piBuf, int *iBufSize, int iSize, int iPlaneNum);
     int setBuf(struct BUFFER *pstBuf, int *piBuf, int *iSize, int iPlaneNum);
+
+    int getBuf(bool bCreateBuf, struct BUFFER *pstBuf, char **pcBuf, int *iBufSize, int iSize, int iPlaneNum);
+    int setBuf(struct BUFFER *pstBuf, char **pcBuf, int *iSize, int iPlaneNum);
     int updateConfig(enum MODE eMode, int iInBufs, int iOutBufs, int iInBufPlanes, int iOutBufPlanes);
     int execute(int iInBufPlanes, int iOutBufPlanes);
 };
@@ -164,7 +182,9 @@ public:
         QUALITY_LEVEL_1 = 0,    /* high */
         QUALITY_LEVEL_2,
         QUALITY_LEVEL_3,
-        QUALITY_LEVEL_4,        /* low */
+        QUALITY_LEVEL_4,
+        QUALITY_LEVEL_5,
+        QUALITY_LEVEL_6,        /* low */
     };
 
     int     create(void);
@@ -172,11 +192,20 @@ public:
 
     int     setJpegConfig(void* pConfig);
 
+    int     checkInBufType(void);
+    int     checkOutBufType(void);
+
     int     getInBuf(int *piBuf, int *piInputSize, int iSize);
     int     getOutBuf(int *piBuf, int *piOutputSize);
 
     int     setInBuf(int *piBuf, int *iSize);
     int     setOutBuf(int iBuf, int iSize);
+
+    int     getInBuf(char **pcBuf, int *piInputSize, int iSize);
+    int     getOutBuf(char **pcBuf, int *piOutputSize);
+
+    int     setInBuf(char **pcBuf, int *iSize);
+    int     setOutBuf(char *pcBuf, int iSize);
 
     int     getSize(int *piWidth, int *piHeight);
     int     getColorFormat(void);
@@ -206,11 +235,20 @@ public:
 
     int     setJpegConfig(void* pConfig);
 
+    int     checkInBufType(void);
+    int     checkOutBufType(void);
+
     int     getInBuf(int *piBuf, int *piInputSize);
     int     getOutBuf(int *picBuf, int *piOutputSize, int iSize);
 
     int     setInBuf(int iBuf, int iSize);
     int     setOutBuf(int *piBuf, int *iSize);
+
+    int     getInBuf(char **pcBuf, int *piInputSize);
+    int     getOutBuf(char **pcBuf, int *piOutputSize, int iSize);
+
+    int     setInBuf(char *pcBuf, int iSize);
+    int     setOutBuf(char **pcBuf, int *iSize);
 
     int     getSize(int *piWidth, int *piHeight);
     int     setColorFormat(int iV4l2ColorFormat);
@@ -221,10 +259,6 @@ public:
     int setJpegSize(int iJpegSize);
 
     int  decode(void);
-#ifdef WA_BLOCKING_ARTIFACT
-private:
-    void reduceBlockingArtifact(unsigned char *addr, int iColor, int width, int height);
-#endif
 };
 
 #endif /* __EXYNOS_JPEG_BASE_H__ */
