@@ -18,7 +18,8 @@ GLOBAL_INCLUDES := \
     $(COMP_PATH_MobiCoreDriverMod)/Public \
     $(COMP_PATH_TlSdk)/Public/MobiCore/inc \
     $(COMP_PATH_MobiCore)/inc \
-    $(COMP_PATH_MobiCore)/inc/TlCm
+    $(COMP_PATH_TlCm)/Public \
+    $(COMP_PATH_TlCm)/Public/TlCm
 
 # Show all warnings
 APP_CFLAGS += -Wall

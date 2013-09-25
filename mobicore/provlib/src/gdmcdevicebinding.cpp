@@ -87,6 +87,82 @@ extern authtok_readcb  g_authtok_readcb;
 
 #endif
 
+#ifdef ARM
+
+extern "C" void GDMCLog ( int prio, const char *tag, const char *fmt, ... )
+{
+  va_list       ap;
+
+  va_start(ap,fmt);
+#if defined(WIN32) || defined(LINUX)
+  {
+    char buffer[1024];
+    FILE *f = fopen("libMcClient.log","at");
+    if (likely(NULL!=f))
+    {
+      vsprintf(buffer,fmt,ap);
+      fprintf(f,"[%i][%s] %s\n",prio,tag,buffer);
+      fclose(f);
+    }
+  }
+#else
+  __android_log_vprint(prio,tag,fmt,ap);
+#endif
+  va_end(ap);
+}
+
+#ifdef _DEBUG
+extern "C" void GDMCHexDump ( const unsigned char *data, int size )
+{
+  static char     szHexLine[80], szHex[12];
+  unsigned char   x, h, l;
+  int             i,j;
+
+  if (!size)
+    return;
+
+  while (size>0)
+  {
+    memset(szHexLine,0x20,sizeof(szHexLine));
+    szHexLine[77] = 0x00;
+    szHexLine[78] = 0x00;
+    if (size>8)
+      szHexLine[34] = '-';
+
+    sprintf(szHex,"%08X",(unsigned int)data);
+    memcpy(szHexLine,szHex,8);
+
+    i=0;j=0;
+    while (size>0)
+    {
+      x = *(data++);
+      size--;
+      h = (x>>4)+0x30;
+      l = (x&15)+0x30;
+      if (h>0x39) h+=7;
+      if (l>0x39) l+=7;
+      szHexLine[i*3+10+j] = (char)h;
+      szHexLine[i*3+11+j] = (char)l;
+
+      if ((x<32) || (x>=127)) x = '.';
+
+      szHexLine[i+61] = (char)x;
+
+      i++;
+      if (8==i)
+        j = 2;
+      if (16==i)
+        break;
+    }
+
+    LOG_d("%s",szHexLine);
+  }
+}
+
+#endif // _DEBUG
+
+#endif // ARM
+
 gderror GDMCComposeErrorMessage ( gdmcinst *inst, gderror error, _u8 *msgout, _u32 *msgout_size, _u32 initial_msgout_size, const char *pszmsg, ... )
 {
   _u32              msgsize = 0;
@@ -116,7 +192,7 @@ gderror GDMCComposeErrorMessage ( gdmcinst *inst, gderror error, _u8 *msgout, _u
   }
 
   errmsgsize_aligned = (errmsgsize+3)&(~3);
-    
+
   // compose MC_ERROR message
 
   msgsize = sizeof(gdmc_msgheader)+sizeof(gdmc_error_msg)+errmsgsize_aligned+sizeof(gdmc_msgtrailer);
@@ -155,7 +231,7 @@ gderror GDMCComposeErrorMessage ( gdmcinst *inst, gderror error, _u8 *msgout, _u
   return GDERROR_OK;
 }
 
-gderror GDPROVAPI GDMCValidateProvMessage ( const _u8        *msg, 
+gderror GDPROVAPI GDMCValidateProvMessage ( const _u8        *msg,
                                             _u32              msgsize,
                                             gdmc_msgheader  **ppheader,
                                             _u8             **ppbody,
@@ -455,4 +531,3 @@ gderror GDPROVAPI GDMCHandleValidateAuthToken ( gdmcinst         *inst,
 
   return GDERROR_PROVISIONING_DONE;
 }
-

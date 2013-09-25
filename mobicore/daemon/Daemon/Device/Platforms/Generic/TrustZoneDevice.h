@@ -89,8 +89,6 @@ public:
      */
     bool initDevice(
         const char  *devFile,
-        bool        loadMobiCore,
-        const char  *mobicoreImage,
         bool        enableScheduler
     );
 
@@ -117,9 +115,9 @@ public:
 
     bool unlockWsmL2(uint32_t handle);
 
-    addr_t findWsmL2(uint32_t handle);
+    addr_t findWsmL2(uint32_t handle, int fd);
 
-    bool findContiguousWsm(uint32_t handle, addr_t *phys, uint32_t *len);
+    bool findContiguousWsm(uint32_t handle, int fd, addr_t *phys, uint32_t *len);
 
     /**
      * Cleanup all orphaned bulk buffers.
@@ -130,6 +128,8 @@ public:
      * Allocates persistent WSM memory for TL (won't be fried when TLC exits).
      */
     CWsm_ptr allocateContiguousPersistentWsm(uint32_t len);
+
+    bool setupLog(void);
 
     bool schedulerAvailable(void);
 

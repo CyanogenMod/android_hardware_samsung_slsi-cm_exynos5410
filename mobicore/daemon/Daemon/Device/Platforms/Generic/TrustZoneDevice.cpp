@@ -1,8 +1,9 @@
 /** @addtogroup MCD_MCDIMPL_DAEMON_DEV
  * @{
  * @file
- *
- *
+ */
+
+/*
  * <!-- Copyright Giesecke & Devrient GmbH 2009 - 2012 -->
  *
  * Redistribution and use in source and binary forms, with or without
@@ -92,8 +93,6 @@ TrustZoneDevice::~TrustZoneDevice(
  */
 bool TrustZoneDevice::initDevice(
     const char  *devFile,
-    bool        loadMobiCore,
-    const char  *mobicoreImage,
     bool        enableScheduler)
 {
     notificationQueue_t *nqStartOut;
@@ -136,6 +135,9 @@ bool TrustZoneDevice::initDevice(
             LOG_E("pMcKMod->fcInit() failed");
             return false;
         }
+
+        // Here we are safe to setup the MobiCore logs
+        setupLog();
 
         // First empty N-SIQ which results in set up of the MCI structure
         if (!nsiq()) {
@@ -497,9 +499,9 @@ bool TrustZoneDevice::cleanupWsmL2(void)
 }
 
 //------------------------------------------------------------------------------
-addr_t TrustZoneDevice::findWsmL2(uint32_t handle)
+addr_t TrustZoneDevice::findWsmL2(uint32_t handle, int fd)
 {
-    addr_t ret = pMcKMod->findWsmL2(handle);
+    addr_t ret = pMcKMod->findWsmL2(handle, fd);
     if (ret == NULL) {
         LOG_E("pMcKMod->findWsmL2 failed");
         return NULL;
@@ -509,13 +511,22 @@ addr_t TrustZoneDevice::findWsmL2(uint32_t handle)
 }
 
 //------------------------------------------------------------------------------
-bool TrustZoneDevice::findContiguousWsm(uint32_t handle, addr_t *phys, uint32_t *len)
+bool TrustZoneDevice::findContiguousWsm(uint32_t handle, int fd, addr_t *phys, uint32_t *len)
 {
-    if (pMcKMod->findContiguousWsm(handle, phys, len)) {
+    if (pMcKMod->findContiguousWsm(handle, fd, phys, len)) {
         LOG_E("pMcKMod->findContiguousWsm failed");
         return false;
     }
     LOG_I("Resolved buffer with handle %u to %p", handle, phys);
+    return true;
+}
+//------------------------------------------------------------------------------
+bool TrustZoneDevice::setupLog(void)
+{
+    if (pMcKMod->setupLog()) {
+        LOG_E("pMcKMod->setupLog failed");
+        return false;
+    }
     return true;
 }
 

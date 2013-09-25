@@ -2,7 +2,7 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 
-LOCAL_MODULE      := gdmcprov
+LOCAL_MODULE      := libgdmcprov
 LOCAL_MODULE_TAGS := eng
 
 LOCAL_C_INCLUDES  := $(LOCAL_PATH)/../inc_private \
@@ -28,9 +28,8 @@ LOCAL_CPPFLAGS    := -O2 -Wall -fomit-frame-pointer -DANDROID_ARM -DARM -D_LENDI
                      -DGDMCPROVLIB_VERSION=0x01000001 -D$(MC_DEBUG)
 
 LOCAL_LDFLAGS     := -Wl,-rpath-link,$(SYSTEM_LIB_DIR) \
-                     -L$(SYSTEM_LIB_DIR)
+                     -L$(SYSTEM_LIB_DIR) -llog
 
 LOCAL_SHARED_LIBRARIES  := $(GDM_PROVLIB_SHARED_LIBS)
 
 include $(BUILD_SHARED_LIBRARY)
-   

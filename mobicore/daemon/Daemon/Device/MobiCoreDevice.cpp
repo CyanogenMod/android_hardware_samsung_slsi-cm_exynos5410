@@ -1,8 +1,9 @@
 /** @addtogroup MCD_MCDIMPL_DAEMON_DEV
  * @{
  * @file
- *
- *
+ */
+
+/*
  * <!-- Copyright Giesecke & Devrient GmbH 2009 - 2012 -->
  *
  * Redistribution and use in source and binary forms, with or without
@@ -85,6 +86,7 @@ void MobiCoreDevice::cleanSessionBuffers(TrustletSession *session)
         unlockWsmL2(pWsm->handle);
         pWsm = session->popBulkBuff();
     }
+    LOG_I("Finished unlocking session buffers!");
 }
 //------------------------------------------------------------------------------
 void MobiCoreDevice::removeTrustletSession(uint32_t sessionId)
@@ -248,36 +250,52 @@ bool MobiCoreDevice::waitMcpNotification(void)
 mcResult_t MobiCoreDevice::openSession(
     Connection                      *deviceConnection,
     loadDataOpenSession_ptr         pLoadDataOpenSession,
-    MC_DRV_CMD_OPEN_SESSION_struct  *cmdOpenSession,
-    mcDrvRspOpenSessionPayload_ptr  pRspOpenSessionPayload
-)
+    uint32_t                        tciHandle,
+    uint32_t                        tciLen,
+    uint32_t                        tciOffset,
+    mcDrvRspOpenSessionPayload_ptr  pRspOpenSessionPayload)
 {
     do {
         addr_t tci;
         uint32_t len;
-        uint32_t handle = cmdOpenSession->handle;
 
-        if (!findContiguousWsm(handle, &tci, &len)) {
-            LOG_E("Failed to find contiguous WSM %u", handle);
+        // Check if we have a cont WSM or normal one
+        if (findContiguousWsm(tciHandle, deviceConnection->socketDescriptor, &tci, &len)) {
+            mcpMessage->cmdOpen.wsmTypeTci = WSM_CONTIGUOUS;
+            mcpMessage->cmdOpen.adrTciBuffer = (uint32_t)(tci);
+            mcpMessage->cmdOpen.ofsTciBuffer = 0;
+        }
+        else if((tci = findWsmL2(tciHandle, deviceConnection->socketDescriptor))) {
+            // We don't actually care about the len as the L2 table mapping is done
+            // and the TL will segfault if it's trying to access non-allocated memory
+            len = tciLen;
+            mcpMessage->cmdOpen.wsmTypeTci = WSM_L2;
+            mcpMessage->cmdOpen.adrTciBuffer = (uint32_t)(tci);
+            mcpMessage->cmdOpen.ofsTciBuffer = tciOffset;
+        }
+        else {
+            LOG_E("Failed to find contiguous WSM %u", tciHandle);
             return MC_DRV_ERR_DAEMON_WSM_HANDLE_NOT_FOUND;
         }
 
-        if (!lockWsmL2(handle)) {
-            LOG_E("Failed to lock contiguous WSM %u", handle);
+
+        if (!lockWsmL2(tciHandle)) {
+            LOG_E("Failed to lock contiguous WSM %u", tciHandle);
             return MC_DRV_ERR_DAEMON_WSM_HANDLE_NOT_FOUND;
         }
+
+        if (tciLen == 0 ||  tciLen > len) {
+            LOG_E("Invalid TCI len from client %u, driver = %u",
+                  pLoadDataOpenSession->len, len);
+            return MC_DRV_ERR_TCI_GREATER_THAN_WSM;
+        }
+
 
         // Write MCP open message to buffer
         mcpMessage->cmdOpen.cmdHeader.cmdId = MC_MCP_CMD_OPEN_SESSION;
-        mcpMessage->cmdOpen.uuid = cmdOpenSession->uuid;
-        mcpMessage->cmdOpen.wsmTypeTci = WSM_CONTIGUOUS;
-        mcpMessage->cmdOpen.adrTciBuffer = (uint32_t)(tci);
-        mcpMessage->cmdOpen.ofsTciBuffer = 0;
-        mcpMessage->cmdOpen.lenTciBuffer = len;
-
-        LOG_I(" Using phys=%p, len=%d as TCI buffer",
-              (addr_t)(cmdOpenSession->tci),
-              cmdOpenSession->len);
+        mcpMessage->cmdOpen.uuid = pLoadDataOpenSession->tlHeader->mclfHeaderV2.uuid;
+        mcpMessage->cmdOpen.lenTciBuffer = tciLen;
+        LOG_I(" Using phys=%p, len=%d as TCI buffer", (addr_t)tci, tciLen);
 
         // check if load data is provided
         mcpMessage->cmdOpen.wsmTypeLoadData = WSM_L2;
@@ -295,7 +313,7 @@ mcResult_t MobiCoreDevice::openSession(
         // Wait till response from MC is available
         if (!waitMcpNotification()) {
             // Here Mobicore can be considered dead.
-            unlockWsmL2(handle);
+            unlockWsmL2(tciHandle);
             return MC_DRV_ERR_DAEMON_MCI_ERROR;
         }
 
@@ -304,7 +322,7 @@ mcResult_t MobiCoreDevice::openSession(
             LOG_E("CMD_OPEN_SESSION got invalid MCP command response(0x%X)", mcpMessage->rspHeader.rspId);
             // Something is messing with our MCI memory, we cannot know if the Trustlet was loaded.
             // Had in been loaded, we are loosing track of it here.
-            unlockWsmL2(handle);
+            unlockWsmL2(tciHandle);
             return MC_DRV_ERR_DAEMON_MCI_ERROR;
         }
 
@@ -312,7 +330,7 @@ mcResult_t MobiCoreDevice::openSession(
 
         if (mcRet != MC_MCP_RET_OK) {
             LOG_E("MCP OPEN returned code %d.", mcRet);
-            unlockWsmL2(handle);
+            unlockWsmL2(tciHandle);
             return MAKE_MC_DRV_MCP_ERROR(mcRet);
         }
 
@@ -329,7 +347,7 @@ mcResult_t MobiCoreDevice::openSession(
 
         trustletSessions.push_back(trustletSession);
 
-        trustletSession->addBulkBuff(new CWsm((void *)pLoadDataOpenSession->offs, pLoadDataOpenSession->len, handle, 0));
+        trustletSession->addBulkBuff(new CWsm((void *)pLoadDataOpenSession->offs, pLoadDataOpenSession->len, tciHandle, 0));
 
         // We have some queued notifications and we need to send them to them
         // trustlet session
@@ -414,10 +432,9 @@ mcResult_t MobiCoreDevice::closeSession(uint32_t sessionId)
 
     return MC_DRV_OK;
 }
+
+//------------------------------------------------------------------------------
 /**
- * TODO-2012-09-19-haenellu: Do some more checks here, otherwise rogue clientLib
- * can close sessions from different TLCs. That is, deviceConnection is ignored below.
- *
  * Need connection as well as according session ID, so that a client can not
  * close sessions not belonging to him.
  */
@@ -425,6 +442,12 @@ mcResult_t MobiCoreDevice::closeSession(Connection *deviceConnection, uint32_t s
 {
     TrustletSession *ts = getTrustletSession(sessionId);
     if (ts == NULL) {
+        LOG_E("no session found with id=%d", sessionId);
+        return MC_DRV_ERR_DAEMON_UNKNOWN_SESSION;
+    }
+
+    /* The connection does not own this trustlet session */
+    if (ts->deviceConnection != deviceConnection) {
         LOG_E("no session found with id=%d", sessionId);
         return MC_DRV_ERR_DAEMON_UNKNOWN_SESSION;
     }
@@ -443,11 +466,16 @@ mcResult_t MobiCoreDevice::closeSession(Connection *deviceConnection, uint32_t s
 
 
 //------------------------------------------------------------------------------
-mcResult_t MobiCoreDevice::mapBulk(uint32_t sessionId, uint32_t handle, uint32_t pAddrL2,
+mcResult_t MobiCoreDevice::mapBulk(Connection *deviceConnection, uint32_t sessionId, uint32_t handle, uint32_t pAddrL2,
                                    uint32_t offsetPayload, uint32_t lenBulkMem, uint32_t *secureVirtualAdr)
 {
     TrustletSession *ts = getTrustletSession(sessionId);
     if (ts == NULL) {
+        LOG_E("no session found with id=%d", sessionId);
+        return MC_DRV_ERR_DAEMON_UNKNOWN_SESSION;
+    }
+    /* The connection does not own this session ID! */
+    if(ts->deviceConnection != deviceConnection) {
         LOG_E("no session found with id=%d", sessionId);
         return MC_DRV_ERR_DAEMON_UNKNOWN_SESSION;
     }
@@ -489,11 +517,16 @@ mcResult_t MobiCoreDevice::mapBulk(uint32_t sessionId, uint32_t handle, uint32_t
 
 
 //------------------------------------------------------------------------------
-mcResult_t MobiCoreDevice::unmapBulk(uint32_t sessionId, uint32_t handle,
+mcResult_t MobiCoreDevice::unmapBulk(Connection *deviceConnection, uint32_t sessionId, uint32_t handle,
                                      uint32_t secureVirtualAdr, uint32_t lenBulkMem)
 {
     TrustletSession *ts = getTrustletSession(sessionId);
     if (ts == NULL) {
+        LOG_E("no session found with id=%d", sessionId);
+        return MC_DRV_ERR_DAEMON_UNKNOWN_SESSION;
+    }
+    /* The connection does not own this session ID! */
+    if(ts->deviceConnection != deviceConnection) {
         LOG_E("no session found with id=%d", sessionId);
         return MC_DRV_ERR_DAEMON_UNKNOWN_SESSION;
     }
@@ -637,6 +670,26 @@ void MobiCoreDevice::queueUnknownNotification(
 )
 {
     notifications.push(notification);
+}
+
+//------------------------------------------------------------------------------
+mcResult_t MobiCoreDevice::notify(Connection *deviceConnection, uint32_t sessionId)
+{
+    TrustletSession *ts = getTrustletSession(sessionId);
+    if (ts == NULL) {
+        LOG_E("no session found with id=%d", sessionId);
+        return MC_DRV_ERR_DAEMON_UNKNOWN_SESSION;
+    }
+
+    /* The connection does not own this trustlet session */
+    if (ts->deviceConnection != deviceConnection) {
+        LOG_E("no session found with id=%d", sessionId);
+        return MC_DRV_ERR_DAEMON_UNKNOWN_SESSION;
+    }
+
+    notify(sessionId);
+
+    return MC_DRV_OK;
 }
 
 /** @} */

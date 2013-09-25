@@ -10,31 +10,35 @@
  * MobiCore Load Format declarations.
  *
  * Holds the definitions for the layout of MobiCore Trustlet Blob.
- * <!-- Copyright Giesecke & Devrient GmbH 2009-2012 -->
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. The name of the author may not be used to endorse or promote
- *    products derived from this software without specific prior
- *    written permission.
+ * Copyright © Trustonic Limited 2013
  *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS
- * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
- * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ *   1. Redistributions of source code must retain the above copyright notice, this
+ *      list of conditions and the following disclaimer.
+ *
+ *   2. Redistributions in binary form must reproduce the above copyright notice,
+ *      this list of conditions and the following disclaimer in the documentation
+ *     and/or other materials provided with the distribution.
+ *
+ *   3. Neither the name of the Trustonic Limited nor the names of its contributors
+ *      may be used to endorse or promote products derived from this software
+ *      without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+ * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #ifndef MCLOADFORMAT_H_
 #define MCLOADFORMAT_H_
@@ -44,7 +48,8 @@
 #include "mcDriverId.h"
 
 #define MCLF_VERSION_MAJOR   2
-#define MCLF_VERSION_MINOR   1
+#define MCLF_VERSION_MINOR   3
+#define MCLF_VERSION_MINOR_CURRENT   3
 
 #define MC_SERVICE_HEADER_MAGIC_BE         ((uint32_t)('M'|('C'<<8)|('L'<<16)|('F'<<24))) /**< "MCLF" in big endian integer representation */
 #define MC_SERVICE_HEADER_MAGIC_LE         ((uint32_t)(('M'<<24)|('C'<<16)|('L'<<8)|'F')) /**< "MCLF" in little endian integer representation */
@@ -111,7 +116,7 @@ typedef struct {
  */
 
 /**
- * Version 2.1 MCLF header.
+ * Version 2.1/2.2 MCLF header.
  */
 typedef struct {
     mclfIntro_t             intro;           /**< MCLF header start with the mandatory intro. */
@@ -138,12 +143,22 @@ typedef struct {
     uint32_t                serviceVersion; /**< Version of the interface the driver exports. */
 
 // These should be put on next MCLF update:
-//    mcSuid_t                permittedSuid;  /**< Starting 2.2: If nonzero, suid which is allowed to execute binary */
-//    uint32_t                permittedHwCf;  /**< Starting 2.2: If nonzero, hw configuration which is allowed to execute binary */
+//    mcSuid_t                permittedSuid;  /**< Starting 2.3: If nonzero, suid which is allowed to execute binary */
+//    uint32_t                permittedHwCf;  /**< Starting 2.3: If nonzero, hw configuration which is allowed to execute binary */
 
 } mclfHeaderV2_t, *mclfHeaderV2_ptr;
 /** @} */
 
+
+/**
+ * Version 2.3 MCLF header.
+ */
+typedef struct {
+    mclfHeaderV2_t          mclfHeaderV2;
+    mcSuid_t                permittedSuid;  /**< Starting 2.3: If nonzero, suid which is allowed to execute binary */
+    uint32_t                permittedHwCfg; /**< Starting 2.3: If nonzero, hw configuration which is allowed to execute binary */
+} mclfHeaderV23_t, *mclfHeaderV23_ptr;
+/** @} */
 
 /**
  * Version 2 MCLF text segment header.
@@ -185,6 +200,17 @@ typedef union {
     mclfIntro_t    intro;           /**< Intro for data structure identification. */
     mclfHeaderV2_t mclfHeaderV2;    /**< Version 2 header */
 } mclfHeader_t, *mclfHeader_ptr;
+
+// Version 2.3 changes header definition
+// Above structure is hard-coded into many places.
+// So new changes are made into separate structure.
+#define MCLF_HEADER_SIZE_V23 (0x080)
+
+// Actual (known) length can be calculated using macro
+#define MCLF_HEADER_SIZE(version) ((version)>0x20002?(MCLF_HEADER_SIZE_V23):sizeof(mclfHeader_t))
+
+// This is only minimum size, so nothing below this makes sense.
+#define MCLF_BINARY_MIN_SIZE(version) (MCLF_HEADER_SIZE_V23+sizeof(mclfTextHeader_t))
 
 #endif /* MCLOADFORMAT_H_ */
 

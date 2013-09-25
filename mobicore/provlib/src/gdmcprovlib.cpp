@@ -77,19 +77,30 @@ authtok_readcb          g_authtok_readcb  = NULL;
 //////////////////////////////////////////////////////////////////////////////
 
 // this API function is not available on ARM
-static gderror GDPROVAPI _GDMCProvFormatErrorMessage ( 
+static gderror GDPROVAPI _GDMCProvFormatErrorMessage (
                               gdhandle provhandle,
                               gderror  errorcode,
-                              char    *msgbuf, 
+                              char    *msgbuf,
                               _u32    *size )
 {
+  LOG_d("++++ ENTERED GDMCProvFormatErrorMessage: NOT IMPLEMENTED.");
   return GDERROR_NOT_IMPLEMENTED;
 }
 
 static gderror GDPROVAPI _GDMCProvInitializeLibrary ( void )
 {
+  LOG_d("++++ ENTERED GDMCProvInitializeLibrary.");
+
   if (unlikely( !mccmOpen() ))
+  {
+	LOG_e("CMTL open FAILED.");
+	LOG_d("++++ LEFT GDMCProvInitializeLibrary.");
     return GDERROR_MOBICORE_LIBRARY;
+  }
+
+  LOG_i("CMTL open successful.");
+
+  LOG_d("++++ LEFT GDMCProvInitializeLibrary.");
 
   return GDERROR_OK;
 }
@@ -134,7 +145,7 @@ static gderror GDPROVAPI _GDMCProvEndProvisioning ( gdhandle provhandle )
   return GDERROR_OK;
 }
 
-static gderror GDPROVAPI _GDMCProvExecuteProvisioningStep ( 
+static gderror GDPROVAPI _GDMCProvExecuteProvisioningStep (
                   gdhandle    provhandle,
                   const _u8  *msgin,
                   _u32        msgin_size,
@@ -173,7 +184,7 @@ static gderror GDPROVAPI _GDMCProvExecuteProvisioningStep (
   // 2.) Evaluate the message that has been received
 
   error = GDMCValidateProvMessage(msgin,msgin_size,&header,&body,&trailer);
-  
+
   if (GDERROR_OK!=error) // something is wrong with the received message
     return GDMCComposeErrorMessage(inst,error,msgout,msgout_size,initial_msgout_size,ERRMSG_0006);
 
@@ -236,10 +247,10 @@ extern "C" _u32 GDPROVAPI GDMCProvGetVersion ( void )
   return GDMCPROVLIB_VERSION;
 }
 
-extern "C" gderror GDPROVAPI GDMCProvFormatErrorMessage ( 
+extern "C" gderror GDPROVAPI GDMCProvFormatErrorMessage (
                               gdhandle provhandle,
                               gderror  errorcode,
-                              char    *msgbuf, 
+                              char    *msgbuf,
                               _u32    *size )
 {
   SE_TRY // MUST BE FIRST INSTRUCTION ////////////////////////////////////////
@@ -285,7 +296,7 @@ extern "C" gderror GDPROVAPI GDMCProvEndProvisioning ( gdhandle provhandle )
   SE_CATCH // MUST BE LAST INSTRUCTION ///////////////////////////////////////
 }
 
-extern "C" gderror GDPROVAPI GDMCProvExecuteProvisioningStep ( 
+extern "C" gderror GDPROVAPI GDMCProvExecuteProvisioningStep (
                   gdhandle    provhandle,
                   const _u8  *msgin,
                   _u32        msgin_size,
@@ -316,7 +327,7 @@ extern "C"  gderror GDPROVAPI GDMCProvGetSUID (
   return GDERROR_NOT_IMPLEMENTED;
 }
 
-extern "C" gderror GDPROVAPI GDMCProvSetAuthTokenCallbacks ( 
+extern "C" gderror GDPROVAPI GDMCProvSetAuthTokenCallbacks (
                               authtok_writecb writefunc,
                               authtok_readcb  readfunc )
 {
@@ -395,5 +406,3 @@ void gdmcprovlib_fini ( void )
 }
 
 #endif // WIN32
-
-

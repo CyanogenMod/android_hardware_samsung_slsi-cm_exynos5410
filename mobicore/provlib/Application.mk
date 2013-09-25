@@ -14,7 +14,9 @@ APP_OPTIM := debug
 #APP_CFLAGS := -Wall
 
 MC_INCLUDE_DIR := $(COMP_PATH_MobiCore)/inc \
-    $(COMP_PATH_MobiCore)/inc/TlCm \
+    $(COMP_PATH_TlCm)/Public \
+    $(COMP_PATH_TlCm)/Public/TlCm \
+    $(COMP_PATH_TlCm)/Public/TlCm/2.0 \
     $(COMP_PATH_MobiCoreDriverLib)/Public
 MC_DEBUG := _DEBUG
 SYSTEM_LIB_DIR=/system/lib

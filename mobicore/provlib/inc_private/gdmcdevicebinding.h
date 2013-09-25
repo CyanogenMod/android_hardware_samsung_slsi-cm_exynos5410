@@ -3,6 +3,9 @@
 
 #include <gdmcprovlib.h>
 #include <gdmcprovprotocol.h>
+#ifdef ARM
+#include <android/log.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,14 +24,42 @@ struct _KSoCAuthSNTS
 }
 #endif
 
-gderror GDMCComposeErrorMessage ( gdmcinst   *inst, 
-                                  gderror     error, 
-                                  _u8        *msgout, 
-                                  _u32       *msgout_size, 
-                                  _u32        initial_msgout_size, 
+#ifdef ARM
+
+extern "C" void GDPROVAPI GDMCLog ( int prio, const char *tag, const char *fmt, ... );
+
+#ifdef _DEBUG
+extern "C" void GDMCHexDump ( const unsigned char *data, int size );
+#endif
+
+#define LOG_TAG		"GDMCProvLib"
+
+#ifdef _DEBUG
+#define LOG_d(...)		do { GDMCLog(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__); } while(0)
+#else
+#define LOG_d(...)		do { } while(0)
+#endif
+#define LOG_i(...)		do { GDMCLog(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__); } while(0)
+#define LOG_w(...)		do { GDMCLog(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__); } while(0)
+#define LOG_e(...)		do { GDMCLog(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__); } while(0)
+
+#else
+
+#define LOG_d(...)		do { } while(0)
+#define LOG_i(...)		do { } while(0)
+#define LOG_w(...)		do { } while(0)
+#define LOG_e(...)		do { } while(0)
+
+#endif // ARM
+
+gderror GDMCComposeErrorMessage ( gdmcinst   *inst,
+                                  gderror     error,
+                                  _u8        *msgout,
+                                  _u32       *msgout_size,
+                                  _u32        initial_msgout_size,
                                   const char *pszmsg, ... );
 
-gderror GDPROVAPI GDMCValidateProvMessage ( const _u8        *msg, 
+gderror GDPROVAPI GDMCValidateProvMessage ( const _u8        *msg,
                                             _u32              msgsize,
                                             gdmc_msgheader  **ppheader,
                                             _u8             **ppbody,

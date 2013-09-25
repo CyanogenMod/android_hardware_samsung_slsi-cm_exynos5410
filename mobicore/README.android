@@ -1,6 +1,5 @@
 MobiCore Daemon in Android
 ---
-
 Command line
 --
 The MobiCore Daemon supports 4 command line options. It also displays them with the help option:

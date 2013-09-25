@@ -130,10 +130,12 @@ public:
 
     mcResult_t openSession(Connection *deviceConnection,
                            loadDataOpenSession_ptr         pLoadDataOpenSession,
-                           MC_DRV_CMD_OPEN_SESSION_struct  *cmdOpenSession,
+                           uint32_t                        tciHandle,
+                           uint32_t                        tciLen,
+                           uint32_t                        tciOffset,
                            mcDrvRspOpenSessionPayload_ptr  pRspOpenSessionPayload);
 
-    TrustletSession *registerTrustletConnection( Connection *connection,
+    TrustletSession *registerTrustletConnection(Connection *connection,
             MC_DRV_CMD_NQ_CONNECT_struct  *cmdNqConnect);
 
     // Internal function
@@ -142,12 +144,14 @@ public:
     // Do more checks
     mcResult_t closeSession(Connection *deviceConnection, uint32_t sessionId);
 
+    virtual mcResult_t notify(Connection *deviceConnection, uint32_t  sessionId);
     virtual void notify(uint32_t  sessionId) = 0;
 
-    mcResult_t mapBulk(uint32_t sessionId, uint32_t handle, uint32_t pAddrL2, uint32_t offsetPayload,
-                       uint32_t lenBulkMem, uint32_t *secureVirtualAdr);
+    mcResult_t mapBulk(Connection *deviceConnection, uint32_t sessionId, uint32_t handle, uint32_t pAddrL2,
+                        uint32_t offsetPayload, uint32_t lenBulkMem, uint32_t *secureVirtualAdr);
 
-    mcResult_t unmapBulk(uint32_t sessionId, uint32_t handle, uint32_t secureVirtualAdr, uint32_t lenBulkMem);
+    mcResult_t unmapBulk(Connection *deviceConnection, uint32_t sessionId, uint32_t handle,
+                        uint32_t secureVirtualAdr, uint32_t lenBulkMem);
 
     void start();
 
@@ -185,8 +189,6 @@ public:
      * */
     virtual bool initDevice(
         const char  *devFile,
-        bool        loadMobiCore,
-        const char  *mobicoreImage,
         bool        enableScheduler
     ) = 0;
 
@@ -202,14 +204,16 @@ public:
 
     virtual bool unlockWsmL2(uint32_t handle) = 0;
 
-    virtual addr_t findWsmL2(uint32_t handle) = 0;
+    virtual addr_t findWsmL2(uint32_t handle, int fd) = 0;
 
-    virtual bool findContiguousWsm(uint32_t handle, addr_t *phys, uint32_t *len) = 0;
+    virtual bool findContiguousWsm(uint32_t handle, int fd, addr_t *phys, uint32_t *len) = 0;
 
     /**
      * Cleanup all orphaned bulk buffers.
      */
     virtual bool cleanupWsmL2(void) = 0;
+
+    virtual bool setupLog(void) = 0;
 
     /**
      * Allocates persistent WSM memory for TL (won't be released when TLC exits).
