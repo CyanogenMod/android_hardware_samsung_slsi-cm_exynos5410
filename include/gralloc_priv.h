@@ -27,9 +27,10 @@
 /* Authors of third party hardware composer (HWC) modules will need to include
  * this header to access functionality in the gralloc and framebuffer HALs.
  */
-#if defined(ANDROID)
+
 #include <hardware/gralloc.h>
-#endif
+
+#define GRALLOC_USAGE_PRIVATE_NONSECURE 0x02000000
 
 #define ALIGN(x,a)	(((x) + (a) - 1L) & ~((a) - 1L))
 #define HW_ALIGN	32
