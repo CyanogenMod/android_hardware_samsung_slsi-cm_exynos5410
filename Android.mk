@@ -21,6 +21,10 @@ exynos5410_dirs := \
 	libhwjpeg \
 	mobicore
 
+ifneq ($(BOARD_USE_USB_WEBCAM),true)
+exynos5410_dirs += libcamera
+endif
+
 include $(call all-named-subdir-makefiles,$(exynos5410_dirs))
 
 endif
