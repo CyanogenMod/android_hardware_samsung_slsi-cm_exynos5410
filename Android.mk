@@ -21,7 +21,7 @@ exynos5410_dirs := \
 	libhwjpeg \
 	mobicore
 
-ifneq ($(BOARD_USE_USB_WEBCAM),true)
+ifeq ($(BOARD_USE_SOC_LIBCAMERA),true)
 exynos5410_dirs += libcamera
 endif
 
