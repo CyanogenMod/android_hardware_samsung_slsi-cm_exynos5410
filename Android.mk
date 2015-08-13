@@ -22,6 +22,7 @@ exynos5410_dirs := \
 	libhdmimodule \
 	libhwcutilsmodule \
 	libhwjpeg \
+	libsecurepath \
 	mobicore
 
 ifeq ($(BOARD_USE_SOC_LIBCAMERA),true)
