@@ -22,6 +22,7 @@ exynos5410_dirs := \
 	libhdmimodule \
 	libhwcutilsmodule \
 	libhwjpeg \
+	libkeymaster \
 	libsecurepath \
 	mobicore
 
