@@ -18,19 +18,16 @@
 #define ANDROID_EXYNOS_HWC_MODULE_H_
 #include <hardware/hwcomposer.h>
 #include <linux/s3c-fb.h>
-const size_t GSC_DST_W_ALIGNMENT_RGB888 = 16;
-const size_t GSC_DST_CROP_W_ALIGNMENT_RGB888 = 1;
-#define VSYNC_DEV_NAME  "/sys/devices/platform/exynos-sysmmu.11/exynos5-fb.1/vsync"
-#define WAIT_FOR_RENDER_FINISH
-#define EXYNOS_SUPPORT_BGRX_8888
-#define HWC_DYNAMIC_RECOMPOSITION
-#define MIXER_UPDATE
-#define USE_NORMAL_DRM
-#define SKIP_STATIC_LAYER_COMP
-#define DUAL_VIDEO_OVERLAY_SUPPORT
-#define DISP_OFFSCREEN_2_GLES_COMPOS
-#define TV_BLANK
 
+#define VSYNC_DEV_PREFIX "/sys/devices"
+#define VSYNC_DEV_MIDDLE "/platform/exynos-sysmmu.11"
+#define VSYNC_DEV_NAME  "/exynos5-fb.1/vsync"
+
+#define DUAL_VIDEO_OVERLAY_SUPPORT
+#define EXYNOS_SUPPORT_BGRX_8888
+#define WAIT_FOR_RENDER_FINISH
+
+#ifdef WAIT_FOR_RENDER_FINISH
 inline int ExynosWaitForRenderFinish(const private_module_t  *gralloc_module,
                                                         buffer_handle_t *handle, int num_buffers)
 {
@@ -40,4 +37,26 @@ inline int ExynosWaitForRenderFinish(const private_module_t  *gralloc_module,
     }
     return 0;
 }
+#endif
+
+const size_t GSC_DST_W_ALIGNMENT_RGB888 = 16;
+const size_t GSC_DST_CROP_W_ALIGNMENT_RGB888 = 1;
+const size_t GSC_W_ALIGNMENT = 16;
+const size_t GSC_H_ALIGNMENT = 16;
+const size_t GSC_DST_H_ALIGNMENT_RGB888 = 1;
+const size_t FIMD_GSC_IDX = 0;
+const size_t FIMD_GSC_SEC_IDX = 1;
+const size_t HDMI_GSC_IDX = 2;
+#ifdef USES_VIRTUAL_DISPLAY
+const size_t WFD_GSC_IDX = 3;
+#else
+const size_t WFD_GSC_DRM_IDX = 3;
+#endif
+const int FIMD_GSC_USAGE_IDX[] = {FIMD_GSC_IDX, FIMD_GSC_SEC_IDX};
+#ifdef USES_VIRTUAL_DISPLAY
+const int AVAILABLE_GSC_UNITS[] = { 0, 1, 1, 1 };
+#else
+const int AVAILABLE_GSC_UNITS[] = { 0, 1, 1, 5 };
+#endif
+
 #endif
