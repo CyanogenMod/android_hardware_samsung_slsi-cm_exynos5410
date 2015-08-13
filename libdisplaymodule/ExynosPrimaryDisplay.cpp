@@ -6,6 +6,14 @@ ExynosPrimaryDisplay::ExynosPrimaryDisplay(int numGSCs, struct exynos5_hwc_compo
 {
 }
 
+int ExynosPrimaryDisplay::waitForRenderFinish(buffer_handle_t *handle, int buffers)
+{
+    if (mGrallocModule->FinishPVRRender(mGrallocModule, handle, buffers) < 0)
+        return -1;
+
+    return 0;
+}
+
 ExynosPrimaryDisplay::~ExynosPrimaryDisplay()
 {
 }

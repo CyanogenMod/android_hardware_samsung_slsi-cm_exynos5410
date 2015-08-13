@@ -25,19 +25,6 @@
 
 #define DUAL_VIDEO_OVERLAY_SUPPORT
 #define EXYNOS_SUPPORT_BGRX_8888
-#define WAIT_FOR_RENDER_FINISH
-
-#ifdef WAIT_FOR_RENDER_FINISH
-inline int ExynosWaitForRenderFinish(const private_module_t  *gralloc_module,
-                                                        buffer_handle_t *handle, int num_buffers)
-{
-    if (gralloc_module) {
-        if (gralloc_module->FinishPVRRender(gralloc_module, handle, num_buffers) < 0)
-            return -1;
-    }
-    return 0;
-}
-#endif
 
 const size_t GSC_DST_W_ALIGNMENT_RGB888 = 16;
 const size_t GSC_DST_CROP_W_ALIGNMENT_RGB888 = 1;
