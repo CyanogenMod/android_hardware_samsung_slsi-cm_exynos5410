@@ -15,7 +15,7 @@
 #
 
 ifeq ($(TARGET_SOC),exynos5410)
-ifeq ($(TARGET_SLSI_VARIANT),insignal)
+ifeq ($(TARGET_SLSI_VARIANT),cm)
 
 exynos5410_dirs := \
 	libdisplaymodule \
