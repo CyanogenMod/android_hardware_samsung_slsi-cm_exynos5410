@@ -26,6 +26,78 @@
 #define DUAL_VIDEO_OVERLAY_SUPPORT
 #define EXYNOS_SUPPORT_BGRX_8888
 
+/* Framebuffer API specific defines (decon_fb.h) */
+#define WIN_STATE_DISABLED  s3c_fb_win_config::S3C_FB_WIN_STATE_DISABLED
+#define WIN_STATE_COLOR     s3c_fb_win_config::S3C_FB_WIN_STATE_COLOR
+#define WIN_STATE_BUFFER    s3c_fb_win_config::S3C_FB_WIN_STATE_BUFFER
+#define BLENDING_NONE       S3C_FB_BLENDING_NONE
+#define BLENDING_MAX        S3C_FB_BLENDING_MAX
+#define PIXEL_FORMAT_MAX    S3C_FB_PIXEL_FORMAT_MAX
+
+const size_t SOC_NUM_HW_WINDOWS = S3C_FB_MAX_WIN;
+
+typedef s3c_fb_win_config fb_win_config;
+typedef s3c_fb_win_config_data fb_win_config_data;
+
+inline s3c_fb_blending halBlendingToSocBlending(int32_t blending)
+{
+    switch (blending) {
+        case HWC_BLENDING_NONE:
+            return S3C_FB_BLENDING_NONE;
+        case HWC_BLENDING_PREMULT:
+            return S3C_FB_BLENDING_PREMULT;
+        case HWC_BLENDING_COVERAGE:
+            return S3C_FB_BLENDING_COVERAGE;
+        default:
+            return S3C_FB_BLENDING_MAX;
+    }
+}
+
+inline s3c_fb_pixel_format halFormatToSocFormat(int format)
+{
+    switch (format) {
+        case HAL_PIXEL_FORMAT_RGBA_8888:
+            return S3C_FB_PIXEL_FORMAT_RGBA_8888;
+        case HAL_PIXEL_FORMAT_RGBX_8888:
+            return S3C_FB_PIXEL_FORMAT_RGBX_8888;
+        case HAL_PIXEL_FORMAT_RGB_565:
+            return S3C_FB_PIXEL_FORMAT_RGB_565;
+        case HAL_PIXEL_FORMAT_BGRA_8888:
+            return S3C_FB_PIXEL_FORMAT_BGRA_8888;
+#ifdef EXYNOS_SUPPORT_BGRX_8888
+        case HAL_PIXEL_FORMAT_BGRX_8888:
+            return S3C_FB_PIXEL_FORMAT_BGRX_8888;
+#endif
+        default:
+            return S3C_FB_PIXEL_FORMAT_MAX;
+    }
+}
+
+#ifdef FIMD_BW_OVERLAP_CHECK
+const size_t MAX_NUM_FIMD_DMA_CH = 2;
+const uint32_t FIMD_DMA_CH_IDX[] = {0, 1, 1, 1, 0};
+const uint32_t FIMD_DMA_CH_BW_SET1[MAX_NUM_FIMD_DMA_CH] = {1920 * 1080 *2, 1920 * 1080 *2};
+const uint32_t FIMD_DMA_CH_BW_SET2[MAX_NUM_FIMD_DMA_CH] = {2560 * 1600, 2560 * 1600 *2};
+const uint32_t FIMD_DMA_CH_OVERLAP_CNT_SET1[MAX_NUM_FIMD_DMA_CH] = {2, 2};
+const uint32_t FIMD_DMA_CH_OVERLAP_CNT_SET2[MAX_NUM_FIMD_DMA_CH] = {1, 2};
+
+inline void fimd_bw_overlap_limits_init(int xres, int yres,
+            uint32_t *fimd_dma_chan_max_bw, uint32_t *fimd_dma_chan_max_overlap_cnt)
+{
+    if (xres * yres > 1920 * 1080) {
+        for (size_t i = 0; i < MAX_NUM_FIMD_DMA_CH; i++) {
+            fimd_dma_chan_max_bw[i] = FIMD_DMA_CH_BW_SET2[i];
+            fimd_dma_chan_max_overlap_cnt[i] = FIMD_DMA_CH_OVERLAP_CNT_SET2[i];
+        }
+    } else {
+        for (size_t i = 0; i < MAX_NUM_FIMD_DMA_CH; i++) {
+            fimd_dma_chan_max_bw[i] = FIMD_DMA_CH_BW_SET1[i];
+            fimd_dma_chan_max_overlap_cnt[i] = FIMD_DMA_CH_OVERLAP_CNT_SET1[i];
+        }
+    }
+}
+#endif
+
 const size_t GSC_DST_W_ALIGNMENT_RGB888 = 16;
 const size_t GSC_DST_CROP_W_ALIGNMENT_RGB888 = 1;
 const size_t GSC_W_ALIGNMENT = 16;
