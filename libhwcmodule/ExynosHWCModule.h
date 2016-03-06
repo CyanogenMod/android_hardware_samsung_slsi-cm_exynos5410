@@ -26,6 +26,53 @@
 #define DUAL_VIDEO_OVERLAY_SUPPORT
 #define EXYNOS_SUPPORT_BGRX_8888
 
+/* Framebuffer API specific defines (decon_fb.h) */
+#define WIN_STATE_DISABLED  s3c_fb_win_config::S3C_FB_WIN_STATE_DISABLED
+#define WIN_STATE_COLOR     s3c_fb_win_config::S3C_FB_WIN_STATE_COLOR
+#define WIN_STATE_BUFFER    s3c_fb_win_config::S3C_FB_WIN_STATE_BUFFER
+#define BLENDING_NONE       S3C_FB_BLENDING_NONE
+#define BLENDING_MAX        S3C_FB_BLENDING_MAX
+#define PIXEL_FORMAT_MAX    S3C_FB_PIXEL_FORMAT_MAX
+
+const size_t SOC_NUM_HW_WINDOWS = S3C_FB_MAX_WIN;
+
+typedef s3c_fb_win_config fb_win_config;
+typedef s3c_fb_win_config_data fb_win_config_data;
+
+inline s3c_fb_blending halBlendingToSocBlending(int32_t blending)
+{
+    switch (blending) {
+        case HWC_BLENDING_NONE:
+            return S3C_FB_BLENDING_NONE;
+        case HWC_BLENDING_PREMULT:
+            return S3C_FB_BLENDING_PREMULT;
+        case HWC_BLENDING_COVERAGE:
+            return S3C_FB_BLENDING_COVERAGE;
+        default:
+            return S3C_FB_BLENDING_MAX;
+    }
+}
+
+inline s3c_fb_pixel_format halFormatToSocFormat(int format)
+{
+    switch (format) {
+        case HAL_PIXEL_FORMAT_RGBA_8888:
+            return S3C_FB_PIXEL_FORMAT_RGBA_8888;
+        case HAL_PIXEL_FORMAT_RGBX_8888:
+            return S3C_FB_PIXEL_FORMAT_RGBX_8888;
+        case HAL_PIXEL_FORMAT_RGB_565:
+            return S3C_FB_PIXEL_FORMAT_RGB_565;
+        case HAL_PIXEL_FORMAT_BGRA_8888:
+            return S3C_FB_PIXEL_FORMAT_BGRA_8888;
+#ifdef EXYNOS_SUPPORT_BGRX_8888
+        case HAL_PIXEL_FORMAT_BGRX_8888:
+            return S3C_FB_PIXEL_FORMAT_BGRX_8888;
+#endif
+        default:
+            return S3C_FB_PIXEL_FORMAT_MAX;
+    }
+}
+
 const size_t GSC_DST_W_ALIGNMENT_RGB888 = 16;
 const size_t GSC_DST_CROP_W_ALIGNMENT_RGB888 = 1;
 const size_t GSC_W_ALIGNMENT = 16;
